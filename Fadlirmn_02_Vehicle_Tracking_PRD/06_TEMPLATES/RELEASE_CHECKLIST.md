@@ -1,0 +1,13 @@
+# Release checklist per project
+- [ ] CI green: lint, type, test, contract, build, e2e
+- [ ] Public demo uses synthetic fixtures or recorded replay only
+- [ ] No VPS required; no long-running workers on Vercel
+- [ ] External API/Telegram/Gemini disabled by default for guests
+- [ ] Real core has reproducible local commands and tested failures
+- [ ] Security/PII/secret scan completed
+- [ ] Fixtures licensed and clearly labeled
+- [ ] Mobile and keyboard navigation verified
+- [ ] All metrics have measurement source or illustration label
+- [ ] README/PRD/schema/diagrams/runbook consistent
+- [ ] Repo link, demo link, poster screenshot, short walkthrough valid
+- [ ] Provider quotas/cost limits checked on actual account plan
