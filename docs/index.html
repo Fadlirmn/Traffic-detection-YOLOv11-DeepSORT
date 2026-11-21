@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B0B0F">
+<meta name="description" content="Dashboard hasil deteksi kemacetan menggunakan YOLO11 dan DeepSORT, dengan replay rekaman dan pratinjau notifikasi Telegram.">
+<title>Traffic Insight — Dashboard Monitoring Kemacetan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme:dark;
+  /* 60 / 30 / 10: near-black foundation / graphite surfaces / violet accents */
+  --bg:#0B0B0F;--surface:#18181F;--surface-2:#22222C;
+  --fg:#F4F4F7;--muted:#A4A4B3;--accent:#A78BFA;--accent-weak:#302643;
+  --line:#32323D;--shadow:0 16px 40px rgba(0,0,0,.16);
+  --lancar:#D4D4DF;--sedang:#E6B86A;--macet:#FB7185;
+  --tg-header:#527DA3;--tg-out:#3390EC;--tg-in:#FFFFFF;--tg-chat-bg:#F3F6F7;--font:'DM Sans',system-ui,sans-serif
+}
+/* Dashboard-only theme tokens; Telegram preview intentionally stays original. */
+:root[data-theme="light"] {
+  color-scheme:light;
+  --bg:#F6F6FA;--surface:#FFFFFF;--surface-2:#EFEFF5;
+  --fg:#191922;--muted:#666677;--accent:#7050C0;--accent-weak:#EEE8FC;
+  --line:#DFDFE8;--shadow:0 10px 30px rgba(28,25,48,.055);
+  --lancar:#555568;--sedang:#93601C;--macet:#BB3452;
+}
+:root[data-theme="light"] .level-LANCAR{background:#EFEFF5;border-color:#D9D9E4}
+:root[data-theme="light"] .level-SEDANG{background:#FFF4E2;border-color:#E7D3AD}
+:root[data-theme="light"] .level-MACET{background:#FFF0F3;border-color:#EAC4CE}
+:root[data-theme="light"] .tile:hover,:root[data-theme="light"] .card:hover{border-color:#C7BEDD}
+:root[data-theme="light"] .brandmark{color:#FFFFFF}
+.theme-switch{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:11px;color:var(--fg);background:var(--surface-2);font-weight:700;font-size:.75rem;white-space:nowrap}
+.theme-switch:hover{background:var(--accent-weak)}
+.theme-switch .material-symbols-outlined{font-size:19px;color:var(--accent)}
+@media(max-width:440px){.theme-switch{padding:9px}.theme-switch .theme-text{display:none}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}button{font:inherit}button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}button{cursor:pointer}button:hover{transition:background .18s,color .18s}h1,h2,h3,p{margin-top:0}.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:22px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-flex;white-space:nowrap;direction:ltr;font-feature-settings:'liga';-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased}.icon-sm{font-size:17px}
+.shell{min-height:100vh;display:grid;grid-template-columns:244px minmax(0,1fr)}.sidebar{position:sticky;top:0;align-self:start;height:100vh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:31px 17px}.brand{display:flex;align-items:center;gap:12px;padding:0 12px;margin-bottom:50px}.brandmark{width:42px;height:42px;flex:none;border-radius:14px;background:var(--accent);color:var(--surface);display:grid;place-items:center}.brandmark span{font-size:25px}.brand strong{font-size:1.05rem;letter-spacing:-.05em}.brand small{display:block;color:var(--muted);font-size:.71rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}.side-heading{padding:0 15px;margin-bottom:12px;color:var(--muted);font-size:.7rem;letter-spacing:.11em;font-weight:800;text-transform:uppercase}.tabs{display:flex;flex-direction:column;gap:5px}.tabs button{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;padding:13px 15px;border-radius:13px;text-align:left;color:var(--muted);font-size:.88rem;font-weight:700}.tabs button[aria-selected=true]{background:var(--accent-weak);color:var(--accent)}.tabs button:hover:not([aria-selected=true]){background:var(--surface-2);color:var(--fg)}.badge{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:var(--macet);color:white;font-size:.68rem;font-weight:800;margin-left:auto}.sidebar-bottom{margin-top:auto;padding:16px 13px;background:var(--surface-2);border-radius:15px}.sidebar-bottom .mini-title{font-size:.72rem;font-weight:800;margin-bottom:7px}.sidebar-bottom p{font-size:.76rem;color:var(--muted);margin:0;line-height:1.6}.side-footer{font-size:.69rem;color:var(--muted);padding:17px 12px 0}
+.main{min-width:0}.topbar{height:80px;padding:0 43px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-bottom:1px solid var(--line)}.crumb{display:flex;align-items:center;gap:11px;font-size:.85rem;font-weight:700}.crumb .material-symbols-outlined{color:var(--accent)}.crumb .subcrumb{font-weight:500;color:var(--muted)}.top-actions{display:flex;align-items:center;gap:12px}.mode-label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface-2);padding:7px 12px;border-radius:99px;color:var(--muted);font-size:.74rem;font-weight:700}.dot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--accent)}.icon-btn{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line)}.icon-btn:hover{background:var(--surface-2)}.content{max-width:1390px;margin:0 auto;padding:39px 43px 65px}.eyebrow{color:var(--accent);letter-spacing:.12em;text-transform:uppercase;font-size:.71rem;font-weight:800;margin-bottom:9px}.heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:29px}.heading h1{font-size:clamp(1.65rem,2.65vw,2.35rem);font-weight:800;letter-spacing:-.055em;line-height:1.18;margin-bottom:11px}.heading p{color:var(--muted);font-size:.87rem;max-width:670px;margin-bottom:0}.small-meta{white-space:nowrap;font-size:.72rem;color:var(--muted);display:flex;gap:7px;align-items:center;padding-bottom:3px}
+[hidden]{display:none!important}.overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:23px}.tile{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:19px;padding:20px 22px;box-shadow:var(--shadow);min-height:135px}.tile-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.tile .label{color:var(--muted);font-size:.78rem;font-weight:600}.tile-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--surface-2);color:var(--accent)}.tile-icon .material-symbols-outlined{font-size:20px}.tile .value{font-size:2rem;font-weight:800;letter-spacing:-.055em;line-height:1.2;font-variant-numeric:tabular-nums}.tile .detail{color:var(--muted);font-size:.72rem;margin-top:8px}.level-pill{display:inline-flex;align-items:center;gap:7px;font-size:1rem;font-weight:800;letter-spacing:.01em;border-radius:999px;padding:9px 13px}.level-pill:before{content:'';width:8px;height:8px;background:currentColor;border-radius:50%}.level-LANCAR{background:rgba(212,212,223,.09);color:var(--lancar)}.level-SEDANG{background:rgba(230,184,106,.11);color:var(--sedang)}.level-MACET{background:rgba(251,113,133,.11);color:var(--macet)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);min-width:0}.card-header{padding:22px 24px 17px;display:flex;align-items:center;justify-content:space-between;gap:12px}.card-title{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:.96rem}.card-title .material-symbols-outlined{color:var(--accent)}.subtle{color:var(--muted);font-size:.75rem}.video-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.75fr);gap:19px;align-items:start}.video-card{overflow:hidden}.video-wrap{background:#08080B;padding:12px;margin:0 17px;border-radius:14px;position:relative;min-height:180px;display:grid;place-items:center}.video-wrap video{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;border-radius:8px;background:#08080B}.video-notice{position:absolute;left:22px;right:22px;top:20px;background:#30263A;color:#EAD7FF;border-radius:10px;font-size:.78rem;padding:11px 13px}.video-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 24px;font-size:.75rem;color:var(--muted)}.video-foot strong{color:var(--fg)}.detail-col{display:flex;flex-direction:column;gap:19px}.detail-content{padding:0 23px 23px}.status-banner{padding:15px;background:var(--accent-weak);border-radius:13px;display:flex;align-items:flex-start;gap:11px;margin-bottom:18px}.status-banner>.material-symbols-outlined{color:var(--accent);font-size:20px}.status-banner strong{font-size:.8rem;display:block}.status-banner p{font-size:.75rem;margin:4px 0 0;color:var(--muted)}.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;background:var(--surface-2);border-radius:8px;color:var(--muted);font-size:.72rem;font-weight:650}.swatch{width:8px;height:8px;border-radius:3px;flex:none}.rule-list{display:grid;gap:13px}.rule{display:flex;justify-content:space-between;align-items:center;gap:9px;font-size:.78rem}.rule span{color:var(--muted)}.rule strong{font-size:.77rem;font-weight:800}.foot-note{margin:22px 0 0;border-top:1px solid var(--line);padding-top:18px;font-size:.73rem;color:var(--muted);line-height:1.75}.foot-note strong{color:var(--fg)}
+.messages-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(310px,430px);gap:22px}.messages-info{padding:24px}.messages-info h2{font-size:1.12rem;letter-spacing:-.035em;margin:10px 0 10px}.messages-info p{color:var(--muted);font-size:.85rem;line-height:1.8}.step{display:flex;gap:12px;margin-top:23px;align-items:flex-start}.step-num{width:27px;height:27px;flex:none;display:grid;place-items:center;border-radius:9px;background:var(--accent-weak);color:var(--accent);font-weight:800;font-size:.75rem}.step strong{font-size:.81rem}.step p{margin:3px 0 0;font-size:.76rem}.phone{border:6px solid #09090C;border-radius:34px;overflow:hidden;background:var(--tg-chat-bg);color:#152023;box-shadow:0 16px 35px rgba(10,25,30,.12);max-width:390px;margin:0 auto;position:relative}.phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:92px;height:16px;border-radius:0 0 12px 12px;background:#09090C;z-index:2}.phone-header{display:flex;align-items:center;gap:11px;background:var(--tg-header);color:#FFFFFF;padding:26px 17px 14px}.tg-avatar{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.17)}.tg-headertext{display:flex;flex-direction:column;gap:2px;line-height:1.3;font-size:.88rem}.tg-headertext small{font-size:.72rem;color:rgba(255,255,255,.80)}.chat{height:min(57vh,490px);min-height:340px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding:15px;background:var(--tg-chat-bg)}.msg{white-space:pre-line;font-size:.79rem;line-height:1.6;max-width:90%;padding:10px 13px;border-radius:13px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.msg.user{align-self:flex-end;background:var(--tg-out);color:#FFFFFF;border-bottom-right-radius:4px}.msg.bot,.msg.alert{align-self:flex-start;background:var(--tg-in);color:#152023;border:1px solid #D9E2E3;border-bottom-left-radius:4px}.msg.alert{border-left:3px solid #D6372F}.msg .time{display:block;text-align:right;color:#65767B;font-size:.65rem;margin-top:6px}.msg.user .time{color:rgba(255,255,255,.8)}.msg .alert-head{display:flex;gap:6px;align-items:center;font-weight:800;color:#D6372F;margin-bottom:7px}.msg.alert img{width:100%;max-width:260px;display:block;object-fit:cover;border-radius:8px;margin-bottom:8px}.chat-empty{text-align:center;color:#5C6E73;font-size:.8rem;padding:40px 0}.phone-inputbar{padding:12px 15px;background:var(--tg-header)}.phone-inputbar span{display:block;border-radius:99px;background:rgba(255,255,255,.14);padding:10px 14px;color:rgba(255,255,255,.78);font-size:.76rem}
+/* Restrained monochrome UI with the violet accent reserved for focus and navigation. */
+::selection{background:#A78BFA;color:#0B0B0F}
+.brandmark{color:#0B0B0F}
+.dark-label{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:.7rem;font-weight:800;letter-spacing:.07em}
+.tile:hover,.card:hover{border-color:#414151}
+.tabs button[aria-selected=true],.mobile-nav button[aria-selected=true]{box-shadow:inset 3px 0 0 var(--accent)}
+.level-LANCAR{border:1px solid #50505E}.level-SEDANG{border:1px solid #705A3D}.level-MACET{border:1px solid #7D394B}
+.video-wrap{border:1px solid #292934}
+.phone-header{border-bottom:1px solid rgba(255,255,255,.12)}
+.mobile-nav{display:none}.footer{padding-top:27px;color:var(--muted);font-size:.72rem;text-align:center}
+@media(max-width:1150px){.shell{grid-template-columns:210px minmax(0,1fr)}.content{padding:33px 28px 50px}.topbar{padding:0 28px}.video-layout{grid-template-columns:1fr}.detail-col{display:grid;grid-template-columns:1fr 1fr}}@media(max-width:760px){.shell{display:block}.sidebar{display:none}.topbar{height:66px;padding:0 18px}.content{padding:25px 16px 95px}.heading{display:block;margin-bottom:23px}.heading h1{font-size:1.7rem}.small-meta{margin-top:15px}.overview{gap:10px}.tile{padding:15px;min-height:120px;border-radius:16px}.tile .value{font-size:1.65rem}.tile .label{font-size:.71rem}.tile .detail{font-size:.66rem}.tile-icon{width:29px;height:29px}.tile-icon .material-symbols-outlined{font-size:17px}.level-pill{font-size:.77rem;padding:8px}.detail-col{grid-template-columns:1fr}.messages-layout{grid-template-columns:1fr}.mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:10;padding:8px max(16px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);gap:8px}.mobile-nav button{display:flex;flex:1;justify-content:center;align-items:center;gap:8px;border:0;border-radius:12px;color:var(--muted);background:transparent;padding:12px;font-size:.79rem;font-weight:800}.mobile-nav button[aria-selected=true]{background:var(--accent-weak);color:var(--accent)}.mobile-nav .badge{margin-left:0}.video-foot{padding:13px 17px}.card-header{padding:19px 18px 14px}.mode-label{font-size:.67rem;padding:6px 8px}.crumb .subcrumb{display:none}.footer{display:none}}@media(max-width:440px){.overview{grid-template-columns:repeat(2,1fr)}.overview .tile:first-child{grid-column:1/-1;min-height:104px}.overview .tile:first-child .tile-top{margin-bottom:6px}.tile{min-height:115px}.top-actions{gap:7px}.mode-label{font-size:.63rem}.video-foot{flex-wrap:wrap}.heading p{font-size:.8rem}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" aria-label="Navigasi utama">
+    <div class="brand"><div class="brandmark"><span class="material-symbols-outlined">traffic</span></div><div><strong>Traffic Insight</strong><small>Monitoring System</small></div></div>
+    <div class="side-heading">Workspace</div>
+    <nav class="tabs" role="tablist" aria-label="Tampilan dashboard">
+      <button role="tab" id="tab-system" aria-selected="true" aria-controls="view-system" data-view="system"><span class="material-symbols-outlined">space_dashboard</span> Dashboard</button>
+      <button role="tab" id="tab-pesan" aria-selected="false" aria-controls="view-pesan" data-view="pesan"><span class="material-symbols-outlined">notifications_none</span> Notifikasi <span class="badge" id="unseenBadge" hidden>0</span></button>
+    </nav>
+    <div class="sidebar-bottom"><div class="mini-title">Tentang sistem</div><p>Berbasis replay hasil analisis YOLO11 + DeepSORT. Data bukan pemantauan langsung.</p></div>
+    <div class="side-footer">Traffic Monitoring · Replay System</div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div class="crumb"><span class="material-symbols-outlined">monitoring</span> Traffic Insight <span class="subcrumb">/ Monitoring</span></div><div class="top-actions"><span class="mode-label"><span class="dot"></span> REPLAY MODE</span><button id="themeToggle" class="theme-switch" type="button" aria-label="Ganti ke mode terang" aria-pressed="true"><span id="themeIcon" class="material-symbols-outlined" aria-hidden="true">light_mode</span><span id="themeText" class="theme-text">Mode terang</span></button></div></header>
+    <div class="content">
+      <div class="heading"><div><div class="eyebrow">TRAFFIC ANALYTICS / OVERVIEW</div><h1>Monitor Kemacetan Lalu Lintas</h1><p>Pantau hasil deteksi kendaraan, tingkat kepadatan, dan notifikasi dari rekaman analisis berbasis computer vision.</p></div><div class="small-meta"><span class="material-symbols-outlined icon-sm">info</span> Rekaman · Bukan data real-time</div></div>
+      <section id="view-system" role="tabpanel" aria-labelledby="tab-system">
+        <div class="overview" aria-label="Ringkasan hasil deteksi">
+          <div class="tile"><div class="tile-top"><span class="label">Kondisi lalu lintas</span><span class="tile-icon"><span class="material-symbols-outlined">traffic</span></span></div><div class="value"><span class="level-pill level-LANCAR" id="statLevel">LANCAR</span></div><div class="detail">Status sesuai titik waktu video</div></div>
+          <div class="tile"><div class="tile-top"><span class="label">Kendaraan dalam AOI</span><span class="tile-icon"><span class="material-symbols-outlined">crop_free</span></span></div><div class="value" id="statInAoi">0</div><div class="detail">Di area pengamatan</div></div>
+          <div class="tile"><div class="tile-top"><span class="label">Total kendaraan</span><span class="tile-icon"><span class="material-symbols-outlined">directions_car</span></span></div><div class="value" id="statTotal">0</div><div class="detail">Menurut overlay sampel</div></div>
+        </div>
+        <div class="video-layout">
+          <div class="card video-card"><div class="card-header"><div class="card-title"><span class="material-symbols-outlined">videocam</span> Hasil Deteksi Kendaraan</div><span class="subtle">YOLO11 + DeepSORT</span></div><div class="video-wrap"><video id="resultVideo" controls preload="metadata" poster="traffic-poster.jpg" aria-label="Rekaman hasil deteksi YOLO11 dan DeepSORT, bukan video live"><source src="traffic-result.mp4" type="video/mp4">Browser Anda tidak mendukung video HTML5.</video><div id="videoNotice" class="video-notice" hidden>File video belum tersedia. Letakkan <strong>traffic-result.mp4</strong> pada folder yang sama dengan halaman ini.</div></div><div class="video-foot"><span><span class="material-symbols-outlined icon-sm">play_circle</span> <strong>Recorded inference</strong> · out_split_6.mp4</span><span><span id="currentTime">0:00</span> / <span id="videoDuration">--:--</span></span></div></div>
+          <div class="detail-col">
+            <div class="card"><div class="card-header"><div class="card-title"><span class="material-symbols-outlined">analytics</span> Informasi Analisis</div></div><div class="detail-content"><div class="status-banner"><span class="material-symbols-outlined">check_circle</span><div><strong>Status rekaman</strong><p id="statusDescription">Arus kendaraan terpantau lancar</p></div></div><div class="subtle">Kelas kendaraan & bobot indeks</div><div class="legend" id="legendWeights"></div></div></div>
+            <div class="card"><div class="card-header"><div class="card-title"><span class="material-symbols-outlined">tune</span> Parameter Deteksi</div></div><div class="detail-content"><div class="rule-list"><div class="rule"><span>Ambang pergerakan</span><strong>&lt; 2 px / 15 frame</strong></div><div class="rule"><span>Indeks sedang</span><strong>≥ 2</strong></div><div class="rule"><span>Indeks macet</span><strong>≥ 4</strong></div><div class="rule"><span>Cooldown notifikasi</span><strong>5 menit</strong></div></div><p class="foot-note"><strong>Catatan data:</strong> status dan jumlah kendaraan berasal dari sampel pembacaan manual overlay pada beberapa waktu video, bukan telemetri langsung. Overlay video dapat menggunakan skala berbeda dari formula bobot di atas.</p></div></div>
+          </div>
+        </div>
+      </section>
+      <section id="view-pesan" role="tabpanel" aria-labelledby="tab-pesan" hidden>
+        <div class="messages-layout"><div class="card messages-info"><div class="eyebrow">AUTOMATED ALERTS</div><h2>Simulasi Notifikasi Telegram</h2><p>Pratinjau percakapan bot dan notifikasi kejadian macet dari hasil pemrosesan video. Alert ditambahkan saat pemutaran video mencapai peristiwa yang ditandai pada timeline, bukan berdasarkan timer halaman.</p><div class="step"><span class="step-num">01</span><div><strong>Putar video</strong><p>Buka dashboard dan mulai rekaman hasil inference.</p></div></div><div class="step"><span class="step-num">02</span><div><strong>Deteksi momen kemacetan</strong><p>Event sampel terdeteksi sekitar detik ke-32.</p></div></div><div class="step"><span class="step-num">03</span><div><strong>Lihat notifikasi</strong><p>Pesan alert muncul dalam pratinjau Telegram di samping.</p></div></div></div><div class="phone"><div class="phone-notch"></div><div class="phone-header"><span class="tg-avatar material-symbols-outlined">smart_toy</span><span class="tg-headertext"><strong>Traffic Monitoring Bot</strong><small>Bot · Percakapan contoh</small></span></div><div id="chat" class="chat" aria-live="polite"></div><div class="phone-inputbar" aria-hidden="true"><span>Message (preview only)</span></div></div></div>
+      </section>
+      <div class="footer">Traffic Insight · Computer Vision System · YOLO11 + DeepSORT</div>
+    </div>
+  </main>
+</div>
+<nav class="mobile-nav" aria-label="Navigasi seluler"><button id="mobile-system" type="button" aria-selected="true" data-mobile-view="system"><span class="material-symbols-outlined">space_dashboard</span> Dashboard</button><button id="mobile-pesan" type="button" aria-selected="false" data-mobile-view="pesan"><span class="material-symbols-outlined">notifications_none</span> Notifikasi <span class="badge" id="mobileBadge" hidden>0</span></button></nav>
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+
+  // ---- dashboard theme (independent from classic Telegram colors) ----
+  var root = document.documentElement;
+  var themeToggle = $("#themeToggle");
+  var themeIcon = $("#themeIcon");
+  var themeText = $("#themeText");
+  var storedTheme = null;
+  try { storedTheme = localStorage.getItem("tm_theme"); } catch(e) {}
+  var theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme :
+    (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  function setTheme(next) {
+    theme = next;
+    root.setAttribute("data-theme", theme);
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === "dark" ? "#0B0B0F" : "#F6F6FA");
+    themeToggle.setAttribute("aria-label", theme === "dark" ? "Ganti ke mode terang" : "Ganti ke mode gelap");
+    themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+    themeIcon.textContent = theme === "dark" ? "light_mode" : "dark_mode";
+    themeText.textContent = theme === "dark" ? "Mode terang" : "Mode gelap";
+    try { localStorage.setItem("tm_theme", theme); } catch(e) {}
+  }
+  themeToggle.addEventListener("click", function(){ setTheme(theme === "dark" ? "light" : "dark"); });
+  setTheme(theme);
+
+  // ---- real pipeline constants (mirrors System_public.py) ----
+  var WEIGHTS = { bus:4.60, car:1.0, motorcycle:0.18, truck:3.13 };
+  var CLASS_COLOR = { car:"#A78BFA", motorcycle:"#C4B5FD", truck:"#E6B86A", bus:"#9393A6" };
+
+  // ---- chat ----
+  var chatEl = $("#chat");
+  var messages = [];
+  var unseen = 0;
+  function nowStr(){ return new Date().toLocaleTimeString("id-ID", {hour12:false}); }
+  function pushMessage(m){
+    messages.push(m);
+    renderChat();
+    if (currentView !== "pesan"){ unseen++; renderBadge(); }
+  }
+  function renderChat(){
+    if (!messages.length){ chatEl.innerHTML = '<div class="chat-empty">Belum ada pesan.</div>'; return; }
+    chatEl.innerHTML = messages.map(function(m){
+      if (m.type === "alert"){
+        return '<div class="msg alert"><div class="alert-head"><span class="material-symbols-outlined icon-sm" aria-hidden="true">warning</span>ALERT</div><img src="'+m.img+'" alt="Snapshot asli saat level MACET"/>' + escapeHtml(m.text) + '<span class="time">'+m.time+'</span></div>';
+      }
+      return '<div class="msg '+(m.from==="user"?"user":"bot")+'">' + escapeHtml(m.text) + '<span class="time">'+m.time+'</span></div>';
+    }).join("");
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+  function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function renderBadge(){
+    var b = $("#unseenBadge");
+    if (unseen > 0){ b.hidden = false; b.textContent = String(unseen); } else { b.hidden = true; }
+    var mobile = $("#mobileBadge"); mobile.hidden = unseen === 0; mobile.textContent = String(unseen);
+  }
+
+  messages.push({from:"user", text:"/start", time: nowStr()});
+  messages.push({from:"bot", text:"Traffic Monitoring Bot activated!", time: nowStr()});
+  messages.push({from:"user", text:"/status", time: nowStr()});
+  messages.push({from:"bot", text:"Active\nThreshold: 2", time: nowStr()});
+  messages.push({from:"bot", text:'Alert akan muncul otomatis di sini saat video di tab "Video" sampai di momen macet asli (sekitar 0:32).', time: nowStr()});
+  renderChat();
+
+  // ---- legend (weights, static reference) ----
+  $("#legendWeights").innerHTML = Object.keys(WEIGHTS).map(function(c){
+    return '<span class="chip"><span class="swatch" style="background:'+CLASS_COLOR[c]+'"></span>'+c+' · bobot '+WEIGHTS[c].toFixed(2)+'</span>';
+  }).join("");
+
+  // ---- real video timeline (manually read off burnt-in overlay text at sampled timestamps) ----
+  var video = $("#resultVideo");
+  var TIMELINE = [
+    {t:0,  level:"LANCAR", inAoi:5, total:6},
+    {t:20, level:"LANCAR", inAoi:5, total:6},
+    {t:32, level:"MACET",  inAoi:5, total:6, alert:true, img:"alert-snapshot-1.jpg"},
+    {t:38, level:"SEDANG", inAoi:4, total:5},
+    {t:50, level:"LANCAR", inAoi:4, total:5}
+  ];
+  function formatT(sec){ var m=Math.floor(sec/60), s=Math.floor(sec%60); return m+":"+(s<10?"0":"")+s; }
+  var lastShownIdx = -1;
+  function applyTimelineAt(t){
+    var idx = -1;
+    for (var i=0;i<TIMELINE.length;i++){ if (TIMELINE[i].t <= t) idx = i; else break; }
+    if (idx === -1 || idx === lastShownIdx) return;
+    lastShownIdx = idx;
+    var c = TIMELINE[idx];
+    $("#statInAoi").textContent = String(c.inAoi);
+    $("#statTotal").textContent = String(c.total);
+    var lv = $("#statLevel"); lv.textContent = c.level; lv.className = "level-pill level-" + c.level;
+    $("#statusDescription").textContent = c.level === "MACET" ? "Kemacetan terdeteksi pada rekaman" : c.level === "SEDANG" ? "Kepadatan kendaraan meningkat" : "Arus kendaraan terpantau lancar";
+    $("#currentTime").textContent = formatT(t);
+  }
+  video.addEventListener("timeupdate", function(){
+    applyTimelineAt(video.currentTime);
+    $("#currentTime").textContent = formatT(video.currentTime);
+    TIMELINE.forEach(function(c){
+      if (c.alert && !c.fired && video.currentTime >= c.t && video.currentTime < c.t + 1.5){
+        c.fired = true;
+        pushMessage({type:"alert", img:c.img, time: nowStr(), text:
+          "Kemacetan terdeteksi!\nVideo: out_split_6.mp4\nLevel: "+c.level+
+          "\nKendaraan di AOI: "+c.inAoi+"\nWaktu video: "+formatT(c.t)});
+      }
+    });
+  });
+  video.addEventListener("seeking", function(){
+    TIMELINE.forEach(function(c){ if (c.fired && video.currentTime < c.t) c.fired = false; });
+  });
+  applyTimelineAt(0);
+  video.addEventListener("loadedmetadata", function(){ $("#videoDuration").textContent = formatT(video.duration || 0); });
+  video.addEventListener("error", function(){ $("#videoNotice").hidden = false; });
+
+  // ---- tabs ----
+  var currentView = "system";
+  function setView(v){
+    currentView = v;
+    $("#view-system").hidden = v !== "system";
+    $("#view-pesan").hidden = v !== "pesan";
+    $("#tab-system").setAttribute("aria-selected", String(v==="system"));
+    $("#tab-pesan").setAttribute("aria-selected", String(v==="pesan"));
+    $("#tab-system").tabIndex = v === "system" ? 0 : -1;
+    $("#tab-pesan").tabIndex = v === "pesan" ? 0 : -1;
+    $("#mobile-system").setAttribute("aria-selected", String(v==="system"));
+    $("#mobile-pesan").setAttribute("aria-selected", String(v==="pesan"));
+    if (v === "pesan"){ unseen = 0; renderBadge(); }
+    try { localStorage.setItem("tm_tab", v); } catch(e){}
+  }
+  $("#tab-system").addEventListener("click", function(){ setView("system"); });
+  $("#tab-pesan").addEventListener("click", function(){ setView("pesan"); });
+
+  document.querySelectorAll('nav.tabs button').forEach(function(button){
+    button.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+        e.preventDefault(); var next = currentView === 'system' ? 'pesan' : 'system';
+        setView(next); document.querySelector('[data-view="'+next+'"]').focus();
+      }
+    });
+  });
+  document.querySelectorAll('[data-mobile-view]').forEach(function(btn){
+    btn.addEventListener('click',function(){ setView(btn.getAttribute('data-mobile-view')); window.scrollTo({top:0,behavior:'smooth'}); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem("tm_tab"); } catch(e){}
+  setView(saved === "pesan" ? "pesan" : "system");
+})();
+</script>
+
+</body>
+</html>
