@@ -14,20 +14,29 @@ Sistem deteksi dan monitoring kemacetan lalu lintas berbasis video, menggunakan:
 ## 🧰 Tech Stack
 
 **Computer vision / backend** (`System_public.py`, `telegram_bot.py`)
-- Python 3
-- [Ultralytics YOLO11](https://github.com/ultralytics/ultralytics) — object detection
-- [deep-sort-realtime](https://github.com/levan92/deep_sort_realtime) — multi-object tracking
-- OpenCV (`opencv-python`) — video I/O, overlay rendering
-- NumPy — perhitungan geometri AOI
-- [pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI) (`telebot`) — bot & notifikasi Telegram
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Ultralytics YOLO11](https://img.shields.io/badge/Ultralytics%20YOLO11-111F68?style=for-the-badge&logo=ultralytics&logoColor=white)](https://github.com/ultralytics/ultralytics)
+[![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org/)
+[![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
+[![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://github.com/eternnoir/pyTelegramBotAPI)
+
+Tracking pakai [deep-sort-realtime](https://github.com/levan92/deep_sort_realtime) (belum ada logo resminya di badge).
 
 **Dashboard web** (`docs/`)
-- HTML5 / CSS3 / vanilla JavaScript — tanpa framework, tanpa build step
-- Google Fonts: DM Sans + Material Symbols Outlined (ikon)
-- `<video>` native untuk replay rekaman hasil inference
 
-**Tooling**
-- `ffmpeg` — transcode video hasil inference ke H.264 untuk pemutaran browser
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/docs/Web/HTML)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css&logoColor=white)](https://developer.mozilla.org/docs/Web/CSS)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+[![Google Fonts](https://img.shields.io/badge/Google%20Fonts-4285F4?style=for-the-badge&logo=googlefonts&logoColor=white)](https://fonts.google.com/)
+
+Vanilla, tanpa framework dan tanpa build step — `<video>` native untuk replay rekaman hasil inference.
+
+**Tooling & hosting**
+
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white)](https://ffmpeg.org/)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=githubpages&logoColor=white)](https://pages.github.com/)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
 
 ---
 
